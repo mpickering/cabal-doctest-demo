@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+# cabal-doctest: An external cabal command for running doctests
+
+set -e
+
+
+
+# Installs
+setup_doctest(){
+  echo "Installing doctest executable..."
+  GHC_VERSION="$($CABAL exec ghc -v0 -- --numeric-version)"
+  $CABAL install doctest --overwrite-policy=always --installdir="$XDG_CACHE_HOME/doctest-$GHC_VERSION"
+  export DOCTEST_PATH="$XDG_CACHE_HOME/doctest-$GHC_VERSION/doctest"
+}
+
+doctest() {
+  setup_doctest
+  echo "Initial build..."
+  $CABAL build
+  echo "Running doctests..."
+  $CABAL repl --repl-options='-w -Wdefault' --build-depends=QuickCheck --build-depends=template-haskell --with-compiler="$DOCTEST_PATH" $2
+}
+
+usage() {
+    cat <<EOF
+usage: $0 MODE ...
+
+Modes:
+  doctest <component>  Run doctests for the specified component
+  doctest-init         Prepare doctest executable for
+EOF
+}
+
+case "X$1" in
+    Xdoctest)
+        doctest $2
+        ;;
+
+    Xdoctest-init)
+        setup_doctest $2
+        ;;
+
+    *)
+        echo "unknown mode $1"
+        usage
+esac
